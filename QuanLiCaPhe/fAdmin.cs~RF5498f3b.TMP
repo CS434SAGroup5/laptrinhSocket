@@ -1,0 +1,181 @@
+﻿using QuanLiCaPhe.DAO;
+using QuanLiCaPhe.DTO;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace QuanLiCaPhe
+{
+    public partial class frm_Admin : Form
+    {
+        BindingSource foodList = new BindingSource();
+        public frm_Admin()
+        {
+            InitializeComponent();
+            load();
+        }
+
+        void load()
+        {
+            dtgv_Food.DataSource = foodList;
+            LoadAccountList();
+            loadListBill(dt_FromDate.Value, dt_ToDate.Value);
+            LoadDateTime();
+            loadListFood();
+            loadComboboxCategory(cb_Category);
+            addFoodBinding();
+            loadTable();
+        }
+        void LoadAccountList()
+        {
+            string query = "EXEC dbo.USP_GetAccountByUserName @userName";
+         
+            dtgv_Account.DataSource =DataProvider.Instance.ExecuteQuery(query, new object[] { "staff" });
+        }
+
+        void loadListBill(DateTime checkIn , DateTime checkOut)
+        {
+            dtgv_Bill.DataSource = BillDAO.Instance.GetListBillDate(checkIn, checkOut);
+        }
+
+        void LoadDateTime()
+        {
+            DateTime today = DateTime.Now;
+            dt_FromDate.Value = new DateTime(today.Year, today.Month, 1);
+            dt_ToDate.Value = dt_FromDate.Value.AddMonths(1).AddDays(-1);
+        }
+
+        private void btn_THONGKE_Click(object sender, EventArgs e)
+        {
+            loadListBill(dt_FromDate.Value, dt_ToDate.Value);
+        }
+
+        void addFoodBinding()
+        {
+            txt_FoodName.DataBindings.Add(new Binding("Text", dtgv_Food.DataSource, "Name" ,true,DataSourceUpdateMode.Never));
+            txt_FoodID.DataBindings.Add(new Binding("Text", dtgv_Food.DataSource, "ID" , true, DataSourceUpdateMode.Never));
+            nb_Price.DataBindings.Add(new Binding("Value", dtgv_Food.DataSource, "Price" , true, DataSourceUpdateMode.Never));
+        }
+
+
+
+        void loadComboboxCategory(ComboBox cb)
+        {
+            cb.DataSource = CategoryDAO.Instance.GetListCategory();
+            cb.DisplayMember = "Name";
+        }
+
+        void loadListFood()
+        {
+            foodList.DataSource = FoodDAO.Instance.getListFood();
+        }
+
+        private void btn_ViewFood_Click(object sender, EventArgs e)
+        {
+            loadListFood();
+        }
+
+        private void txt_FoodID_TextChanged(object sender, EventArgs e)
+        {
+            int id = (int)dtgv_Food.SelectedCells[0].OwningRow.Cells["CategoryID"].Value;
+
+            Category category = CategoryDAO.Instance.GetCategoryID(id);
+
+            cb_Category.SelectedItem = category;
+
+            int index = -1;
+
+            int i = 0;
+
+            foreach(Category item in cb_Category.Items)
+            {
+                if(item.ID == category.ID)
+                {
+                    index = i;
+                    break;
+                }
+                i++;
+            }
+            cb_Category.SelectedIndex = index;
+        }
+
+        private void btn_AddFood_Click(object sender, EventArgs e)
+        {
+            string name = txt_FoodName.Text;
+            int categoryID = (cb_Category.SelectedItem as Category).ID;
+            float price = (float)nb_Price.Value;
+
+            if (FoodDAO.Instance.insertFood(name,categoryID, price))
+            {
+                MessageBox.Show("Thêm món thành công");
+                loadListFood(); 
+            }
+            else
+            {
+                MessageBox.Show("Có lỗi khi thêm món ăn");
+            }
+        }
+
+        private void btn_EditFood_Click(object sender, EventArgs e)
+        {
+            string name = txt_FoodName.Text;
+            int categoryID = (cb_Category.SelectedItem as Category).ID;
+            float price = (float)nb_Price.Value;
+            int id = Convert.ToInt32(txt_FoodID.Text);
+
+
+            if (FoodDAO.Instance.updateFood(id,name, categoryID, price))
+            {
+                MessageBox.Show("Sửa món thành công");
+                loadListFood();
+            }
+            else
+            {
+                MessageBox.Show("Có lỗi khi sửa món ăn");
+            }
+        }
+
+        private void btn_DeleteFood_Click(object sender, EventArgs e)
+        {
+            int id = Convert.ToInt32(txt_FoodID.Text);
+
+            if (FoodDAO.Instance.deleteFood(id))
+            {
+                MessageBox.Show("Xóa món thành công");
+                loadListFood();
+            }
+            else
+            {
+                MessageBox.Show("Có lỗi khi xóa món ăn");
+            }
+        }
+
+        void loadTable()
+        {
+            dtgr_Table.DataSource = TableDAO.Instance.getListTable();
+        }
+
+        private void btn_AddTable_Click(object sender, EventArgs e)
+        {
+            string name = txt_FoodName.Text;
+            int id = Convert.ToInt32(txtIDTable.Text);
+       
+
+            if (TableDAO.Instance.insertTable(name))
+            {
+                MessageBox.Show("Thêm món thành công");
+                loadListFood();
+            }
+            else
+            {
+                MessageBox.Show("Có lỗi khi thêm món ăn");
+            }
+        }
+    }
+}
